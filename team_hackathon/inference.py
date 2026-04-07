@@ -5,7 +5,7 @@ MANDATORY
 - Before submitting, ensure the following variables are defined in your environment configuration:
     API_BASE_URL   The API endpoint for the LLM.
     MODEL_NAME     The model identifier to use for inference.
-    HF_TOKEN       Your Hugging Face / API key.
+    API_KEY        The injected API key for the provided LLM proxy.
     LOCAL_IMAGE_NAME The name of the local image to use for the environment if you are using from_docker_image()
                      method
 
@@ -53,7 +53,7 @@ from client import TeamHackathonEnv
 from models import TeamHackathonAction
 
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
-API_KEY = os.getenv("HF_TOKEN")
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
 
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
@@ -232,10 +232,10 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
 
 async def main() -> None:
     try:
-        if not API_KEY:
-            raise RuntimeError("Missing API key. Set HF_TOKEN.")
+    if not API_KEY:
+        raise RuntimeError("Missing API key. Set API_KEY.")
 
-        client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
         if LOCAL_IMAGE_NAME:
             env = await TeamHackathonEnv.from_docker_image(LOCAL_IMAGE_NAME)
