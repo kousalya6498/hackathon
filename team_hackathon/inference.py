@@ -5,7 +5,7 @@ MANDATORY
 - Before submitting, ensure the following variables are defined in your environment configuration:
     API_BASE_URL   The API endpoint for the LLM.
     MODEL_NAME     The model identifier to use for inference.
-    OPENAI_API_KEY Your OpenAI-compatible API key.
+    HF_TOKEN       Your Hugging Face / API key.
     LOCAL_IMAGE_NAME The name of the local image to use for the environment if you are using from_docker_image()
                      method
 
@@ -52,12 +52,8 @@ from openai import OpenAI
 from client import TeamHackathonEnv
 from models import TeamHackathonAction
 
-IMAGE_NAME = os.getenv("IMAGE_NAME")
-API_KEY = (
-    os.getenv("OPENAI_API_KEY")
-    or os.getenv("HF_TOKEN")
-    or os.getenv("API_KEY")
-)
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
+API_KEY = os.getenv("HF_TOKEN")
 
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
@@ -177,10 +173,8 @@ def get_model_action(client: OpenAI, step: int, obs, history: List[str]) -> str:
             if action in text.lower():
                 return action
         
-        # Default fallback
         return "check_logs"
-    except Exception as exc:
-        print(f"[DEBUG] Model request failed: {exc}", flush=True)
+    except Exception:
         return "check_logs"
 
 
@@ -237,34 +231,36 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
 
 
 async def main() -> None:
-    if not API_KEY:
-        raise RuntimeError("Missing API key. Set OPENAI_API_KEY or API_BASE_URL-compatible credentials.")
-
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-
-    if IMAGE_NAME:
-        env = await TeamHackathonEnv.from_docker_image(IMAGE_NAME)
-    else:
-        env_url = os.getenv("ENV_URL", "http://localhost:8000")
-        env = TeamHackathonEnv(
-            base_url=env_url,
-            connect_timeout_s=10.0,
-            message_timeout_s=20.0,
-        )
-
-    task_names = [TASK_NAME] if TASK_NAME else TASK_ORDER
-
     try:
+        if not API_KEY:
+            raise RuntimeError("Missing API key. Set HF_TOKEN.")
+
+        client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+
+        if LOCAL_IMAGE_NAME:
+            env = await TeamHackathonEnv.from_docker_image(LOCAL_IMAGE_NAME)
+        else:
+            env_url = os.getenv("ENV_URL", "http://localhost:8000")
+            env = TeamHackathonEnv(
+                base_url=env_url,
+                connect_timeout_s=10.0,
+                message_timeout_s=20.0,
+            )
+
+        task_names = [TASK_NAME] if TASK_NAME else TASK_ORDER
+
         for task_name in task_names:
             await run_task(client, env, task_name)
     finally:
         try:
-            await env.close()
-        except Exception as e:
-            print(f"[DEBUG] env.close() error (container cleanup): {e}", flush=True)
+            await env.close()  # type: ignore[name-defined]
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-
-# Made with Bob
+    try:
+        asyncio.run(main())
+    except Exception:
+        # Keep stdout compliant with the hackathon parser even if startup fails.
+        log_end(success=False, steps=0, score=0.0, rewards=[])

@@ -1,3 +1,13 @@
+---
+title: Pipeline Debugger
+emoji: "🛠️"
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Pipeline Debugging Environment
 
 An OpenEnv environment for training agents to diagnose and fix supply chain pipeline failures through systematic investigation using multi-signal operational evidence.

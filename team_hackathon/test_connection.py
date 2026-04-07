@@ -107,5 +107,3 @@ if __name__ == "__main__":
     else:
         print("\nHTTP checks failed. Start the server with:")
         print("  python -m uvicorn server.app:app --host 0.0.0.0 --port 8000")
-
-# Made with Bob

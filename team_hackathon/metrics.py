@@ -390,5 +390,3 @@ def calculate_aggregate_metrics(episodes: List[EpisodeMetrics]) -> Dict:
         "average_efficiency": round(avg_efficiency, 3),
         "by_difficulty": difficulty_stats,
     }
-
-# Made with Bob

@@ -17,3 +17,6 @@ build/
 
 # OS files
 .DS_Store
+
+team_hackathon/.env
+.env

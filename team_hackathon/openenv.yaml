@@ -38,5 +38,3 @@ scoring:
   components:
     correctness: 0.7
     efficiency: 0.3
-
-# Made with Bob
