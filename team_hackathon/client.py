@@ -55,7 +55,8 @@ class TeamHackathonEnv(
             Dictionary representation suitable for JSON encoding
         """
         return {
-            "message": action.message,
+            "action_type": action.action_type,
+            "parameters": action.parameters,
         }
 
     def _parse_result(self, payload: Dict) -> StepResult[TeamHackathonObservation]:
@@ -69,13 +70,7 @@ class TeamHackathonEnv(
             StepResult with TeamHackathonObservation
         """
         obs_data = payload.get("observation", {})
-        observation = TeamHackathonObservation(
-            echoed_message=obs_data.get("echoed_message", ""),
-            message_length=obs_data.get("message_length", 0),
-            done=payload.get("done", False),
-            reward=payload.get("reward"),
-            metadata=obs_data.get("metadata", {}),
-        )
+        observation = TeamHackathonObservation(**obs_data)
 
         return StepResult(
             observation=observation,

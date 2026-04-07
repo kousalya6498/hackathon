@@ -1,7 +1,42 @@
 spec_version: 1
-name: team_hackathon
+name: pipeline_debugger
 type: space
 runtime: fastapi
 app: server.app:app
 port: 8000
+description: "OpenEnv environment for training agents to diagnose and fix supply chain pipeline failures"
+tags:
+  - reinforcement-learning
+  - supply-chain
+  - debugging
+  - pipeline-monitoring
 
+# Task definitions
+tasks:
+  easy_api_delay:
+    difficulty: easy
+    name: "Simple API Delay"
+    description: "API response time is high"
+    max_steps: 8
+    
+  medium_sync_failure:
+    difficulty: medium
+    name: "Warehouse Sync Failure"
+    description: "Stock mismatch between warehouse and central system"
+    max_steps: 10
+    
+  hard_cascade_failure:
+    difficulty: hard
+    name: "Cascading Timeout Failure"
+    description: "Multiple systems experiencing cascading failures"
+    max_steps: 12
+
+# Scoring information
+scoring:
+  type: normalized
+  range: [0.0, 1.0]
+  components:
+    correctness: 0.7
+    efficiency: 0.3
+
+# Made with Bob

@@ -1,0 +1,257 @@
+{
+  "dataset_version": "2.0",
+  "domain": "supply_chain_incident_response",
+  "incidents": {
+    "easy_api_delay": {
+      "task_id": "easy_api_delay",
+      "timestamp": "2026-04-06T09:30:00Z",
+      "pipeline": "Inventory Sync Pipeline",
+      "site": "west-region-api-gateway",
+      "issue": "Sustained warehouse sync latency spike after retry storm",
+      "business_impact": {
+        "delayed_orders": 184,
+        "warehouses_affected": 2,
+        "partner_escalations": 1,
+        "sla_breach_risk": "medium"
+      },
+      "inventory_logs": {
+        "lag_detected": false,
+        "lag_duration_ms": 850,
+        "error_count": 1,
+        "mismatch_items": 3,
+        "entries": [
+          "2026-04-06T09:24:15Z WH-SEA sync-worker inventory snapshot committed in 842ms status=ok sku_count=1204",
+          "2026-04-06T09:24:45Z WH-SEA sync-worker lag within threshold delta=37 units status=ok",
+          "2026-04-06T09:25:15Z WH-PDX sync-worker inventory snapshot committed in 866ms status=ok sku_count=1189",
+          "2026-04-06T09:25:45Z WH-PDX sync-worker mismatch reconciliation pending for 3 items severity=low",
+          "2026-04-06T09:26:15Z WH-SEA sync-worker acknowledgement delayed by 418ms downstream=inventory-api",
+          "2026-04-06T09:26:45Z WH-SEA sync-worker local queue depth=4 status=healthy",
+          "2026-04-06T09:27:15Z WH-PDX sync-worker local queue depth=5 status=healthy",
+          "2026-04-06T09:27:45Z WH-SEA sync-worker inventory snapshot committed in 879ms status=ok",
+          "2026-04-06T09:28:15Z WH-SEA sync-worker warning outbound api call exceeded soft threshold elapsed=2810ms",
+          "2026-04-06T09:28:45Z WH-PDX sync-worker warning outbound api call exceeded soft threshold elapsed=2960ms",
+          "2026-04-06T09:29:15Z WH-SEA sync-worker commit succeeded after delayed response elapsed=3184ms",
+          "2026-04-06T09:29:45Z WH-PDX sync-worker commit succeeded after delayed response elapsed=3051ms"
+        ]
+      },
+      "api_sync_logs": {
+        "response_time_ms": 3320,
+        "timeout_count": 0,
+        "retry_count": 11,
+        "error_rate": 0.04,
+        "total_requests": 287,
+        "failed_requests": 12,
+        "entries": [
+          "2026-04-06T09:24:10Z POST /api/v1/warehouse/sync status=200 latency_ms=1188 upstream=inventory-core trace=trc-1001",
+          "2026-04-06T09:24:40Z POST /api/v1/warehouse/sync status=200 latency_ms=1260 upstream=inventory-core trace=trc-1002",
+          "2026-04-06T09:25:10Z POST /api/v1/warehouse/sync status=200 latency_ms=1733 upstream=inventory-core trace=trc-1003",
+          "2026-04-06T09:25:40Z POST /api/v1/warehouse/sync status=200 latency_ms=2194 upstream=inventory-core trace=trc-1004",
+          "2026-04-06T09:26:10Z POST /api/v1/warehouse/sync status=200 latency_ms=2466 upstream=inventory-core trace=trc-1005",
+          "2026-04-06T09:26:40Z POST /api/v1/warehouse/sync status=200 latency_ms=2718 upstream=inventory-core trace=trc-1006",
+          "2026-04-06T09:27:10Z POST /api/v1/warehouse/sync status=200 latency_ms=2874 upstream=inventory-core trace=trc-1007",
+          "2026-04-06T09:27:40Z POST /api/v1/warehouse/sync status=200 latency_ms=3015 upstream=inventory-core trace=trc-1008",
+          "2026-04-06T09:28:10Z POST /api/v1/warehouse/sync status=200 latency_ms=3440 upstream=inventory-core trace=trc-1009 retry=1",
+          "2026-04-06T09:28:40Z POST /api/v1/warehouse/sync status=200 latency_ms=3586 upstream=inventory-core trace=trc-1010 retry=1",
+          "2026-04-06T09:29:10Z POST /api/v1/warehouse/sync status=200 latency_ms=3714 upstream=inventory-core trace=trc-1011 retry=2",
+          "2026-04-06T09:29:40Z POST /api/v1/warehouse/sync status=200 latency_ms=3320 upstream=inventory-core trace=trc-1012 retry=2"
+        ]
+      },
+      "metrics": {
+        "avg_latency_ms": 2642,
+        "max_latency_ms": 3910,
+        "network_congestion": 0.34,
+        "cpu_usage_percent": 62,
+        "memory_usage_percent": 58,
+        "active_connections": 172,
+        "time_series": [
+          "09:24 latency_ms=1188 p95=1404 inflight=91 retries=0",
+          "09:25 latency_ms=1733 p95=2082 inflight=104 retries=1",
+          "09:26 latency_ms=2466 p95=2710 inflight=119 retries=2",
+          "09:27 latency_ms=2874 p95=3012 inflight=131 retries=5",
+          "09:28 latency_ms=3586 p95=3708 inflight=148 retries=8",
+          "09:29 latency_ms=3320 p95=3499 inflight=152 retries=11"
+        ]
+      },
+      "expected_diagnosis": {
+        "root_cause": "API tier latency spike with elevated retries but no inventory corruption",
+        "diagnostic_steps": [
+          "check_api",
+          "check_metrics"
+        ],
+        "recommended_fix": [
+          "retry_pipeline"
+        ]
+      }
+    },
+    "medium_sync_failure": {
+      "task_id": "medium_sync_failure",
+      "timestamp": "2026-04-06T12:15:00Z",
+      "pipeline": "Inventory Sync Pipeline",
+      "site": "midwest-warehouse-reconciliation",
+      "issue": "Cross-system stock mismatch caused by partial sync acknowledgements",
+      "business_impact": {
+        "delayed_orders": 621,
+        "warehouses_affected": 4,
+        "partner_escalations": 5,
+        "sla_breach_risk": "high"
+      },
+      "inventory_logs": {
+        "lag_detected": true,
+        "lag_duration_ms": 4870,
+        "error_count": 14,
+        "mismatch_items": 137,
+        "entries": [
+          "2026-04-06T12:09:05Z WH-CHI sync-worker mismatch sku=SKU-18442 expected=67 actual=58 ack_id=ack-2201",
+          "2026-04-06T12:09:20Z WH-DET sync-worker mismatch sku=SKU-55218 expected=211 actual=194 ack_id=ack-2202",
+          "2026-04-06T12:09:35Z WH-CLE sync-worker warning duplicate delivery receipt ignored receipt=rcpt-8172",
+          "2026-04-06T12:09:50Z WH-CHI sync-worker mismatch sku=SKU-11048 expected=91 actual=77 ack_id=ack-2203",
+          "2026-04-06T12:10:05Z WH-MKE sync-worker sync_delay_ms=4410 queue_depth=28 severity=high",
+          "2026-04-06T12:10:20Z WH-CLE sync-worker mismatch sku=SKU-90117 expected=304 actual=289 ack_id=ack-2204",
+          "2026-04-06T12:10:35Z WH-DET sync-worker warning acknowledgment missing for batch=batch-7712",
+          "2026-04-06T12:10:50Z WH-CHI sync-worker mismatch sku=SKU-71009 expected=48 actual=35 ack_id=ack-2205",
+          "2026-04-06T12:11:05Z WH-MKE sync-worker mismatch sku=SKU-50014 expected=129 actual=120 ack_id=ack-2206",
+          "2026-04-06T12:11:20Z WH-CLE sync-worker reconciliation_backlog=137 oldest_event_age_s=420",
+          "2026-04-06T12:11:35Z WH-DET sync-worker warning upstream ack timeout batch=batch-7713 retry=2",
+          "2026-04-06T12:11:50Z WH-CHI sync-worker mismatch sku=SKU-38119 expected=88 actual=74 ack_id=ack-2207",
+          "2026-04-06T12:12:05Z WH-MKE sync-worker sync_delay_ms=4870 queue_depth=31 severity=critical",
+          "2026-04-06T12:12:20Z WH-CLE sync-worker mismatch sku=SKU-00841 expected=144 actual=136 ack_id=ack-2208"
+        ]
+      },
+      "api_sync_logs": {
+        "response_time_ms": 2940,
+        "timeout_count": 3,
+        "retry_count": 17,
+        "error_rate": 0.18,
+        "total_requests": 392,
+        "failed_requests": 71,
+        "entries": [
+          "2026-04-06T12:09:10Z POST /api/v1/warehouse/sync status=202 latency_ms=1690 trace=trc-2201 note=accepted_without_commit",
+          "2026-04-06T12:09:25Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-2202 note=gateway_timeout",
+          "2026-04-06T12:09:40Z POST /api/v1/warehouse/sync status=202 latency_ms=1778 trace=trc-2203 note=accepted_without_commit",
+          "2026-04-06T12:09:55Z POST /api/v1/warehouse/sync status=200 latency_ms=2010 trace=trc-2204 note=commit_delayed",
+          "2026-04-06T12:10:10Z POST /api/v1/warehouse/sync status=500 latency_ms=1260 trace=trc-2205 note=sync_state_conflict",
+          "2026-04-06T12:10:25Z POST /api/v1/warehouse/sync status=202 latency_ms=1880 trace=trc-2206 note=accepted_without_commit",
+          "2026-04-06T12:10:40Z POST /api/v1/warehouse/sync status=200 latency_ms=2892 trace=trc-2207 note=late_commit",
+          "2026-04-06T12:10:55Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-2208 note=gateway_timeout",
+          "2026-04-06T12:11:10Z POST /api/v1/warehouse/sync status=202 latency_ms=1911 trace=trc-2209 note=accepted_without_commit",
+          "2026-04-06T12:11:25Z POST /api/v1/warehouse/sync status=500 latency_ms=1494 trace=trc-2210 note=sync_state_conflict",
+          "2026-04-06T12:11:40Z POST /api/v1/warehouse/sync status=200 latency_ms=2940 trace=trc-2211 note=partial_commit",
+          "2026-04-06T12:11:55Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-2212 note=gateway_timeout"
+        ]
+      },
+      "metrics": {
+        "avg_latency_ms": 2810,
+        "max_latency_ms": 5210,
+        "network_congestion": 0.49,
+        "cpu_usage_percent": 71,
+        "memory_usage_percent": 76,
+        "active_connections": 224,
+        "time_series": [
+          "12:09 latency_ms=1690 p95=2400 inflight=141 retries=3 ack_timeout=7",
+          "12:10 latency_ms=2010 p95=3120 inflight=156 retries=6 ack_timeout=11",
+          "12:11 latency_ms=2940 p95=4210 inflight=173 retries=12 ack_timeout=17",
+          "12:12 latency_ms=5210 p95=5400 inflight=188 retries=17 ack_timeout=23"
+        ]
+      },
+      "expected_diagnosis": {
+        "root_cause": "State divergence between warehouse workers and sync API acknowledgements",
+        "diagnostic_steps": [
+          "check_logs",
+          "check_api"
+        ],
+        "recommended_fix": [
+          "fix_sync",
+          "retry_pipeline"
+        ]
+      }
+    },
+    "hard_cascade_failure": {
+      "task_id": "hard_cascade_failure",
+      "timestamp": "2026-04-06T18:40:00Z",
+      "pipeline": "Inventory Sync Pipeline",
+      "site": "multi-region-fulfillment-mesh",
+      "issue": "Network saturation cascades into API timeouts, stale stock state, and recovery backlog",
+      "business_impact": {
+        "delayed_orders": 2418,
+        "warehouses_affected": 9,
+        "partner_escalations": 13,
+        "sla_breach_risk": "critical"
+      },
+      "inventory_logs": {
+        "lag_detected": true,
+        "lag_duration_ms": 9310,
+        "error_count": 39,
+        "mismatch_items": 784,
+        "entries": [
+          "2026-04-06T18:33:15Z WH-SFO sync-worker reconciliation_backlog=512 oldest_event_age_s=905",
+          "2026-04-06T18:33:30Z WH-LAX sync-worker mismatch sku=SKU-88317 expected=125 actual=99 ack_id=ack-9101",
+          "2026-04-06T18:33:45Z WH-DFW sync-worker mismatch sku=SKU-44118 expected=310 actual=266 ack_id=ack-9102",
+          "2026-04-06T18:34:00Z WH-ATL sync-worker warning checkpoint flush delayed storage_wait_ms=812",
+          "2026-04-06T18:34:15Z WH-IAD sync-worker mismatch sku=SKU-77124 expected=74 actual=51 ack_id=ack-9103",
+          "2026-04-06T18:34:30Z WH-SEA sync-worker sync_delay_ms=8450 queue_depth=118 severity=critical",
+          "2026-04-06T18:34:45Z WH-ORD sync-worker mismatch sku=SKU-11472 expected=402 actual=377 ack_id=ack-9104",
+          "2026-04-06T18:35:00Z WH-MIA sync-worker warning duplicate replay detected batch=batch-9912 count=4",
+          "2026-04-06T18:35:15Z WH-BOS sync-worker mismatch sku=SKU-33281 expected=146 actual=110 ack_id=ack-9105",
+          "2026-04-06T18:35:30Z WH-LAX sync-worker sync_delay_ms=9020 queue_depth=126 severity=critical",
+          "2026-04-06T18:35:45Z WH-SFO sync-worker mismatch sku=SKU-01928 expected=93 actual=69 ack_id=ack-9106",
+          "2026-04-06T18:36:00Z WH-DFW sync-worker warning upstream ack timeout batch=batch-9915 retry=3",
+          "2026-04-06T18:36:15Z WH-IAD sync-worker mismatch sku=SKU-64001 expected=205 actual=188 ack_id=ack-9107",
+          "2026-04-06T18:36:30Z WH-SEA sync-worker warning reconciliation stalled due to api saturation",
+          "2026-04-06T18:36:45Z WH-ORD sync-worker mismatch sku=SKU-12885 expected=55 actual=42 ack_id=ack-9108",
+          "2026-04-06T18:37:00Z WH-MIA sync-worker sync_delay_ms=9310 queue_depth=131 severity=critical"
+        ]
+      },
+      "api_sync_logs": {
+        "response_time_ms": 4870,
+        "timeout_count": 18,
+        "retry_count": 64,
+        "error_rate": 0.41,
+        "total_requests": 812,
+        "failed_requests": 337,
+        "entries": [
+          "2026-04-06T18:33:12Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-9101 region=us-west note=gateway_timeout",
+          "2026-04-06T18:33:27Z POST /api/v1/warehouse/sync status=503 latency_ms=4112 trace=trc-9102 region=us-west note=upstream_overloaded",
+          "2026-04-06T18:33:42Z POST /api/v1/warehouse/sync status=500 latency_ms=2360 trace=trc-9103 region=us-central note=state_lock_contention",
+          "2026-04-06T18:33:57Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-9104 region=us-east note=gateway_timeout",
+          "2026-04-06T18:34:12Z POST /api/v1/warehouse/sync status=429 latency_ms=980 trace=trc-9105 region=us-west note=rate_limited",
+          "2026-04-06T18:34:27Z POST /api/v1/warehouse/sync status=503 latency_ms=4328 trace=trc-9106 region=us-east note=upstream_overloaded",
+          "2026-04-06T18:34:42Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-9107 region=us-central note=gateway_timeout",
+          "2026-04-06T18:34:57Z POST /api/v1/warehouse/sync status=200 latency_ms=4870 trace=trc-9108 region=us-central note=late_commit_with_retry retry=5",
+          "2026-04-06T18:35:12Z POST /api/v1/warehouse/sync status=503 latency_ms=4518 trace=trc-9109 region=us-west note=upstream_overloaded",
+          "2026-04-06T18:35:27Z POST /api/v1/warehouse/sync status=429 latency_ms=1012 trace=trc-9110 region=us-east note=rate_limited",
+          "2026-04-06T18:35:42Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-9111 region=us-west note=gateway_timeout",
+          "2026-04-06T18:35:57Z POST /api/v1/warehouse/sync status=500 latency_ms=2271 trace=trc-9112 region=us-east note=state_lock_contention",
+          "2026-04-06T18:36:12Z POST /api/v1/warehouse/sync status=503 latency_ms=4484 trace=trc-9113 region=us-central note=upstream_overloaded",
+          "2026-04-06T18:36:27Z POST /api/v1/warehouse/sync status=504 latency_ms=5000 trace=trc-9114 region=us-east note=gateway_timeout"
+        ]
+      },
+      "metrics": {
+        "avg_latency_ms": 4510,
+        "max_latency_ms": 6120,
+        "network_congestion": 0.93,
+        "cpu_usage_percent": 84,
+        "memory_usage_percent": 88,
+        "active_connections": 448,
+        "time_series": [
+          "18:33 latency_ms=4112 p95=5000 inflight=241 retries=22 packet_loss=0.07",
+          "18:34 latency_ms=4328 p95=5210 inflight=284 retries=35 packet_loss=0.11",
+          "18:35 latency_ms=4870 p95=5580 inflight=337 retries=49 packet_loss=0.16",
+          "18:36 latency_ms=6120 p95=6120 inflight=391 retries=64 packet_loss=0.18"
+        ]
+      },
+      "expected_diagnosis": {
+        "root_cause": "Cascading failure driven by network congestion and API saturation causing sync divergence",
+        "diagnostic_steps": [
+          "check_logs",
+          "check_api",
+          "check_metrics"
+        ],
+        "recommended_fix": [
+          "retry_pipeline",
+          "apply_batching",
+          "fix_sync"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env
+.git/
+.pytest_cache/
+.mypy_cache/
+openenv_team_hackathon.egg-info/

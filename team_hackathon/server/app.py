@@ -36,7 +36,7 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 try:
-    from models import TeamHackathonAction, TeamHackathonObservation
+    from team_hackathon.models import TeamHackathonAction, TeamHackathonObservation
     from .team_hackathon_environment import TeamHackathonEnvironment
 except ModuleNotFoundError:
     from models import TeamHackathonAction, TeamHackathonObservation
@@ -49,7 +49,7 @@ app = create_app(
     TeamHackathonAction,
     TeamHackathonObservation,
     env_name="team_hackathon",
-    max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
+    max_concurrent_envs=8,
 )
 
 
@@ -81,4 +81,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
-    main(port=args.port)
+    if args.port == 8000:
+        main()
+    else:
+        main(port=args.port)
