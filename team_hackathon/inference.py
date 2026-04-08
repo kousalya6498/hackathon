@@ -7,9 +7,11 @@ structured stdout format.
 
 import asyncio
 import os
+import sys
 import textwrap
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlparse
 
 IMPORT_ERROR: Optional[Exception] = None
 
@@ -97,6 +99,28 @@ def require_env(name: str) -> str:
     if not value:
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value
+
+
+def log_client_config(api_base_url: str, model_name: str) -> None:
+    parsed = urlparse(api_base_url)
+    host = parsed.netloc or parsed.path or "unknown"
+    print(
+        f"[LLM] base_url_host={host} api_key_present=true model={model_name}",
+        flush=True,
+    )
+
+
+def verify_proxy_request(client: OpenAI) -> None:
+    client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "system", "content": "Reply with exactly one valid action name."},
+            {"role": "user", "content": "Respond with: check_api"},
+        ],
+        temperature=0.0,
+        max_tokens=8,
+        stream=False,
+    )
 
 
 def log_start(task: str, env: str, model: str) -> None:
@@ -262,7 +286,9 @@ async def main() -> None:
     env: Optional[TeamHackathonEnv] = None
     api_base_url = require_env("API_BASE_URL")
     api_key = require_env("API_KEY")
+    log_client_config(api_base_url, MODEL_NAME)
     client = OpenAI(base_url=api_base_url, api_key=api_key)
+    verify_proxy_request(client)
 
     try:
         if LOCAL_IMAGE_NAME:
@@ -292,3 +318,4 @@ if __name__ == "__main__":
     except Exception as exc:
         print(f"[ERROR] {exc}", flush=True)
         log_end(success=False, steps=0, score=0.0, rewards=[])
+        sys.exit(1)
