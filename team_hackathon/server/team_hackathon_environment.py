@@ -175,7 +175,7 @@ class TeamHackathonEnvironment(Environment):
             metrics_summary=self._format_metrics_summary(),
             business_impact_summary=self._format_business_impact(),
             done=False,
-            reward=0.0,
+            reward=self.MIN_VISIBLE_SCORE,
         )
 
     def step(self, action: TeamHackathonAction) -> TeamHackathonObservation:  # type: ignore[override]
@@ -276,7 +276,7 @@ class TeamHackathonEnvironment(Environment):
             metrics_summary=self._format_metrics_summary(),
             business_impact_summary=self._format_business_impact(),
             done=done,
-            reward=final_score if done else reward,
+            reward=final_score if done else max(self.MIN_VISIBLE_SCORE, running_score),
             metadata={
                 "diagnostic_actions": list(self._diagnostic_actions_taken),
                 "fix_actions": list(self._fix_actions_taken),
