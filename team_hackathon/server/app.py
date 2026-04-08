@@ -182,12 +182,12 @@ async def home() -> str:
               <strong>Primary use case:</strong> evaluate whether an agent can diagnose and fix
               production-like supply-chain failures using evidence instead of guesswork.
             </div>
-            <pre>HF_TOKEN=your_token \
+            <pre>API_KEY=your_key \
 API_BASE_URL=https://router.huggingface.co/v1 \
 MODEL_NAME=Qwen/Qwen2.5-72B-Instruct \
 PIPELINE_TASK=hard_cascade_failure \
 ENV_URL=http://localhost:8000 \
-venv/bin/python inference.py</pre>
+venv/bin/python -u inference.py</pre>
             <div class="subtle">
               Explore the interactive schema in <code>/docs</code>, verify deployment health,
               open a sample structured run transcript from the example output endpoint, or copy the
@@ -207,12 +207,12 @@ async def example_output() -> JSONResponse:
         {
             "description": "Sample structured stdout from inference.py",
             "local_test_command": [
-                "HF_TOKEN=your_token \\",
+                "API_KEY=your_key \\",
                 "API_BASE_URL=https://router.huggingface.co/v1 \\",
                 "MODEL_NAME=Qwen/Qwen2.5-72B-Instruct \\",
                 "PIPELINE_TASK=hard_cascade_failure \\",
                 "ENV_URL=http://localhost:8000 \\",
-                "venv/bin/python inference.py",
+                "venv/bin/python -u inference.py",
             ],
             "lines": [
                 "[START] task=easy_api_delay env=pipeline_debugger model=Qwen/Qwen2.5-72B-Instruct",
