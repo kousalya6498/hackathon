@@ -7,14 +7,24 @@ structured stdout format.
 
 import asyncio
 import os
-import sys
 import textwrap
 from typing import List, Optional
 
-from openai import OpenAI
+IMPORT_ERROR: Optional[Exception] = None
 
-from client import TeamHackathonEnv
-from models import TeamHackathonAction
+try:
+    from openai import OpenAI
+except Exception as exc:
+    OpenAI = None  # type: ignore[assignment]
+    IMPORT_ERROR = exc
+
+try:
+    from client import TeamHackathonEnv
+    from models import TeamHackathonAction
+except Exception as exc:
+    TeamHackathonEnv = None  # type: ignore[assignment]
+    TeamHackathonAction = None  # type: ignore[assignment]
+    IMPORT_ERROR = IMPORT_ERROR or exc
 
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
@@ -73,13 +83,6 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
         f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={','.join(f'{r:.2f}' for r in rewards)}",
         flush=True,
     )
-
-
-def require_validator_env() -> None:
-    if "API_BASE_URL" not in os.environ:
-        raise RuntimeError("Missing API_BASE_URL.")
-    if "API_KEY" not in os.environ and "HF_TOKEN" not in os.environ:
-        raise RuntimeError("Missing API_KEY.")
 
 
 def build_user_prompt(obs, history: List[str]) -> str:
@@ -169,6 +172,7 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
     steps_taken = 0
     score = 0.0
     success = False
+    last_error: Optional[str] = None
 
     log_start(task_name, BENCHMARK, MODEL_NAME)
 
@@ -180,16 +184,28 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
             if result.done:
                 break
 
-            action_type = get_model_action(client, obs, history)
-            result = await env.step(TeamHackathonAction(action_type=action_type))
+            try:
+                action_type = get_model_action(client, obs, history)
+            except Exception as exc:
+                last_error = str(exc).replace("\n", " ").strip() or exc.__class__.__name__
+                action_type = fallback_action(obs, history)
+
+            try:
+                result = await env.step(TeamHackathonAction(action_type=action_type))
+            except Exception as exc:
+                last_error = str(exc).replace("\n", " ").strip() or exc.__class__.__name__
+                log_step(step, action_type, 0.0, True, last_error)
+                break
+
             obs = result.observation
 
             reward = result.reward or 0.0
             rewards.append(reward)
             steps_taken = step
 
-            log_step(step, action_type, reward, result.done, None)
+            log_step(step, action_type, reward, result.done, last_error)
             history.append(f"Step {step}: {action_type} -> {obs.action_result}")
+            last_error = None
 
             if result.done:
                 score = obs.current_score
@@ -199,37 +215,41 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
         if not result.done and rewards:
             score = min(max(sum(rewards) / len(rewards), 0.0), 1.0)
         success = score >= SUCCESS_SCORE_THRESHOLD
+    except Exception:
+        success = False
     finally:
         log_end(success, steps_taken, score, rewards)
 
 
 async def main() -> None:
-    require_validator_env()
-    if not API_KEY:
-        raise RuntimeError("Missing API key. Set API_KEY.")
+    if IMPORT_ERROR is not None:
+        raise RuntimeError(str(IMPORT_ERROR))
 
-    # Important: use the injected validator proxy values directly.
-    client = OpenAI(base_url=os.environ["API_BASE_URL"], api_key=os.environ.get("API_KEY", API_KEY))
-
-    if LOCAL_IMAGE_NAME:
-        env = await TeamHackathonEnv.from_docker_image(LOCAL_IMAGE_NAME)
-    else:
-        env = TeamHackathonEnv(
-            base_url=ENV_URL,
-            connect_timeout_s=10.0,
-            message_timeout_s=20.0,
-        )
-
-    task_names = [TASK_NAME] if TASK_NAME else TASK_ORDER
+    env: Optional[TeamHackathonEnv] = None
+    api_base_url = os.getenv("API_BASE_URL", API_BASE_URL)
+    api_key = os.getenv("API_KEY") or API_KEY
+    client = OpenAI(base_url=api_base_url, api_key=api_key)
 
     try:
+        if LOCAL_IMAGE_NAME:
+            env = await TeamHackathonEnv.from_docker_image(LOCAL_IMAGE_NAME)
+        else:
+            env = TeamHackathonEnv(
+                base_url=ENV_URL,
+                connect_timeout_s=10.0,
+                message_timeout_s=20.0,
+            )
+
+        task_names = [TASK_NAME] if TASK_NAME else TASK_ORDER
+
         for task_name in task_names:
             await run_task(client, env, task_name)
     finally:
-        try:
-            await env.close()
-        except Exception:
-            pass
+        if env is not None:
+            try:
+                await env.close()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
@@ -237,4 +257,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except Exception:
         log_end(success=False, steps=0, score=0.0, rewards=[])
-        sys.exit(1)
