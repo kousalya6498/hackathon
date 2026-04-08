@@ -101,6 +101,7 @@ class TeamHackathonEnvironment(Environment):
     """
 
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
+    MIN_VISIBLE_SCORE: float = 1e-3
 
     def __init__(self, task_id: Optional[str] = None):
         """
@@ -167,7 +168,7 @@ class TeamHackathonEnvironment(Environment):
             max_steps=self._current_task["max_steps"],
             diagnosis_complete=False,
             fix_applied=False,
-            current_score=0.0,
+            current_score=self.MIN_VISIBLE_SCORE,
             hints=f"Investigate the {self._current_task['name']}",
             inventory_log_excerpt=self._format_inventory_excerpt(),
             api_log_excerpt=self._format_api_excerpt(),
@@ -236,18 +237,16 @@ class TeamHackathonEnvironment(Environment):
         # Episode done if: all correct actions taken OR max steps reached
         done = diagnosis_complete or self._state.step_count >= self._current_task["max_steps"]
         
-        # Calculate normalized score (0.0-1.0) using metrics module
-        if done:
-            _, _, final_score = self._metrics_calculator.calculate_final_score(
-                self._score,
-                self._state.step_count,
-                correct_diagnostic,
-                correct_fixes,
-                self._diagnostic_actions_taken,
-                self._fix_actions_taken,
-            )
-        else:
-            final_score = 0.0
+        # Always expose a strictly in-range normalized score for validator compatibility.
+        _, _, running_score = self._metrics_calculator.calculate_final_score(
+            self._score,
+            self._state.step_count,
+            correct_diagnostic,
+            correct_fixes,
+            self._diagnostic_actions_taken,
+            self._fix_actions_taken,
+        )
+        final_score = running_score if done else max(self.MIN_VISIBLE_SCORE, running_score)
         
         # Generate observation
         indicators = self._current_task["indicators"]
@@ -270,7 +269,7 @@ class TeamHackathonEnvironment(Environment):
             max_steps=self._current_task["max_steps"],
             diagnosis_complete=diagnosis_complete,
             fix_applied=fix_applied,
-            current_score=final_score if done else 0.0,
+            current_score=final_score,
             hints=self._get_hint(),
             inventory_log_excerpt=self._format_inventory_excerpt(),
             api_log_excerpt=self._format_api_excerpt(),
