@@ -72,7 +72,7 @@ class TeamHackathonObservation(Observation):
     fix_applied: bool = Field(default=False, description="Whether fix has been applied")
     
     # Score information
-    current_score: float = Field(default=0.0, description="Current episode score (0-1)")
+    current_score: float = Field(default=0.001, description="Current episode score (strictly between 0 and 1)")
     
     # Additional context
     hints: Optional[str] = Field(default=None, description="Hints for the agent")

@@ -34,7 +34,7 @@ tasks:
 # Scoring information
 scoring:
   type: normalized
-  range: [0.0, 1.0]
+  range: [0.001, 0.999]
   components:
     correctness: 0.7
     efficiency: 0.3
