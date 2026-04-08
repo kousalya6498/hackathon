@@ -38,6 +38,7 @@ MAX_STEPS = 12
 TEMPERATURE = 0.0
 MAX_TOKENS = 100
 SUCCESS_SCORE_THRESHOLD = 0.5
+SCORE_EPSILON = 1e-3
 TASK_ORDER = ["easy_api_delay", "medium_sync_failure", "hard_cascade_failure"]
 VALID_ACTIONS = [
     "check_logs",
@@ -135,10 +136,16 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
 
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    safe_score = clamp_score(score)
     print(
-        f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={','.join(f'{r:.2f}' for r in rewards)}",
+        f"[END] success={str(success).lower()} steps={steps} score={safe_score:.3f} rewards={','.join(f'{r:.2f}' for r in rewards)}",
         flush=True,
     )
+
+
+def clamp_score(score: float) -> float:
+    """Keep exported task scores inside the open interval required by the validator."""
+    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, score))
 
 
 def build_user_prompt(obs, history: List[str]) -> str:
@@ -226,7 +233,7 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
     history: List[str] = []
     rewards: List[float] = []
     steps_taken = 0
-    score = 0.0
+    score = SCORE_EPSILON
     success = False
     last_error: Optional[str] = None
 
@@ -264,14 +271,17 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
             last_error = None
 
             if result.done:
-                score = obs.current_score
+                score = clamp_score(obs.current_score)
                 success = obs.diagnosis_complete and obs.fix_applied
                 break
 
         if not result.done and rewards:
-            score = min(max(sum(rewards) / len(rewards), 0.0), 1.0)
-        success = score >= SUCCESS_SCORE_THRESHOLD
+            score = clamp_score(sum(rewards) / len(rewards))
+        else:
+            score = clamp_score(score)
+        success = success or score >= SUCCESS_SCORE_THRESHOLD
     except Exception:
+        score = clamp_score(score)
         success = False
     finally:
         log_end(success, steps_taken, score, rewards)
@@ -317,5 +327,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except Exception as exc:
         print(f"[ERROR] {exc}", flush=True)
-        log_end(success=False, steps=0, score=0.0, rewards=[])
+        log_end(success=False, steps=0, score=SCORE_EPSILON, rewards=[])
         sys.exit(1)

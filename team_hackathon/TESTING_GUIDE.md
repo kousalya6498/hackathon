@@ -213,10 +213,10 @@ python3 inference.py
 Expected output:
 ```
 [START] task=easy_api_delay env=pipeline_debugger model=Qwen/Qwen2.5-72B-Instruct
-[STEP] step=1 action=check_api reward=0.00 done=false error=null
-[STEP] step=2 action=check_metrics reward=0.00 done=false error=null
-[STEP] step=3 action=retry_pipeline reward=1.00 done=true error=null
-[END] success=true steps=3 score=0.95 rewards=0.00,0.00,1.00
+[STEP] step=1 action=check_api reward=0.52 done=false error=null
+[STEP] step=2 action=check_metrics reward=0.72 done=false error=null
+[STEP] step=3 action=retry_pipeline reward=0.87 done=true error=null
+[END] success=true steps=3 score=0.872 rewards=0.52,0.72,0.87
 ```
 
 ### 🎯 Testing Different Tasks
@@ -247,7 +247,7 @@ Before deployment, verify:
 - [ ] Baseline achieves ~0.48 average score
 - [ ] LLM inference produces proper [START]/[STEP]/[END] logs
 - [ ] All 3 tasks (easy/medium/hard) work correctly
-- [ ] Scores are between 0.0 and 1.0
+- [ ] Each task score is strictly between 0.0 and 1.0
 - [ ] No errors in server logs
 
 ---

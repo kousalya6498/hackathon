@@ -6,8 +6,20 @@
 
 """Team Hackathon Environment."""
 
-from .client import TeamHackathonEnv
-from .models import TeamHackathonAction, TeamHackathonObservation
+
+def __getattr__(name: str):
+    if name in {"TeamHackathonAction", "TeamHackathonObservation"}:
+        from .models import TeamHackathonAction, TeamHackathonObservation
+
+        return {
+            "TeamHackathonAction": TeamHackathonAction,
+            "TeamHackathonObservation": TeamHackathonObservation,
+        }[name]
+    if name == "TeamHackathonEnv":
+        from .client import TeamHackathonEnv
+
+        return TeamHackathonEnv
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "TeamHackathonAction",
