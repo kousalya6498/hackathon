@@ -107,7 +107,6 @@ async def home() -> str:
             gap: 12px;
             flex-wrap: wrap;
             margin-top: 20px;
-            margin-bottom: 24px;
           }
           a {
             text-decoration: none;
@@ -133,25 +132,17 @@ async def home() -> str:
             padding: 2px 6px;
             border-radius: 6px;
           }
-          pre {
-            background: #0f1b2a;
-            color: #e8f0f8;
-            padding: 18px;
-            border-radius: 14px;
-            overflow-x: auto;
-            font-size: 0.92rem;
-            line-height: 1.55;
-          }
-          .section-title {
-            margin-top: 28px;
-            margin-bottom: 8px;
-            font-size: 1.05rem;
-            font-weight: 700;
-          }
-          ul {
+          .detail-list {
             color: var(--muted);
             line-height: 1.6;
-            padding-left: 20px;
+            margin-top: 18px;
+          }
+          .detail-list strong {
+            color: var(--text);
+          }
+          .subtle {
+            margin-top: 18px;
+            font-size: 0.96rem;
           }
         </style>
       </head>
@@ -161,34 +152,30 @@ async def home() -> str:
             <div class="badge">OpenEnv Space Running</div>
             <h1>Pipeline Debugging Environment</h1>
             <p>
-              This Hugging Face Space hosts an OpenEnv environment for incident diagnosis in
-              supply-chain synchronization pipelines. Agents investigate logs, API traces, and
-              metrics, then apply fixes across easy, medium, and hard tasks.
+              This environment simulates real supply-chain incident response for inventory and
+              warehouse synchronization systems. An agent investigates operational evidence across
+              API behavior, inventory pipeline drift, and infrastructure metrics, then chooses the
+              right remediation before fulfillment accuracy and downstream operations degrade.
             </p>
             <p>
-              Useful endpoints:
-              <code>/health</code> for readiness checks,
-              <code>/reset</code> to start an episode,
-              <code>/docs</code> for the FastAPI API reference.
+              The benchmark includes three escalating scenarios: a recoverable API slowdown,
+              a warehouse sync mismatch, and a cascading multi-signal failure that requires
+              coordinated diagnosis. Rewards reflect partial progress, redundant actions are
+              penalized, and final scores are normalized to <code>[0, 1]</code>.
             </p>
             <div class="links">
-              <a href="/docs">Open API Docs</a>
+              <a href="/docs">API Docs</a>
               <a href="/health">Health Check</a>
-              <a href="/openapi.json">OpenAPI JSON</a>
               <a href="/example-output">Example Output</a>
             </div>
-            <div class="section-title">What Visitors Will See</div>
-            <ul>
-              <li><code>/health</code> returns a small readiness JSON response.</li>
-              <li><code>/docs</code> shows the interactive API documentation.</li>
-              <li><code>/example-output</code> shows a sample inference transcript in the required hackathon format.</li>
-            </ul>
-            <div class="section-title">Sample Inference Output</div>
-            <pre>[START] task=easy_api_delay env=pipeline_debugger model=Qwen/Qwen2.5-72B-Instruct
-[STEP] step=1 action=check_api reward=0.10 done=false error=null
-[STEP] step=2 action=check_metrics reward=0.08 done=false error=null
-[STEP] step=3 action=retry_pipeline reward=0.87 done=true error=null
-[END] success=true steps=3 score=0.872 rewards=0.10,0.08,0.87</pre>
+            <div class="detail-list">
+              <strong>Primary use case:</strong> evaluate whether an agent can diagnose and fix
+              production-like supply-chain failures using evidence instead of guesswork.
+            </div>
+            <div class="subtle">
+              Explore the interactive schema in <code>/docs</code>, verify deployment health, or
+              open a sample structured run transcript from the example output endpoint.
+            </div>
           </div>
         </div>
       </body>
