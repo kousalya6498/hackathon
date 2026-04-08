@@ -127,10 +127,20 @@ async def home() -> str:
             font-size: 0.9rem;
             font-weight: 700;
           }
-          code {
+            code {
             background: #f3f6f8;
             padding: 2px 6px;
             border-radius: 6px;
+          }
+          pre {
+            margin-top: 18px;
+            padding: 16px;
+            overflow-x: auto;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: #0f1b2a;
+            color: #e8f0f8;
+            line-height: 1.5;
           }
           .detail-list {
             color: var(--muted);
@@ -172,9 +182,16 @@ async def home() -> str:
               <strong>Primary use case:</strong> evaluate whether an agent can diagnose and fix
               production-like supply-chain failures using evidence instead of guesswork.
             </div>
+            <pre>HF_TOKEN=your_token \
+API_BASE_URL=https://router.huggingface.co/v1 \
+MODEL_NAME=Qwen/Qwen2.5-72B-Instruct \
+PIPELINE_TASK=hard_cascade_failure \
+ENV_URL=http://localhost:8000 \
+venv/bin/python inference.py</pre>
             <div class="subtle">
-              Explore the interactive schema in <code>/docs</code>, verify deployment health, or
-              open a sample structured run transcript from the example output endpoint.
+              Explore the interactive schema in <code>/docs</code>, verify deployment health,
+              open a sample structured run transcript from the example output endpoint, or copy the
+              command above to test the environment locally against a running server.
             </div>
           </div>
         </div>
@@ -189,6 +206,14 @@ async def example_output() -> JSONResponse:
     return JSONResponse(
         {
             "description": "Sample structured stdout from inference.py",
+            "local_test_command": [
+                "HF_TOKEN=your_token \\",
+                "API_BASE_URL=https://router.huggingface.co/v1 \\",
+                "MODEL_NAME=Qwen/Qwen2.5-72B-Instruct \\",
+                "PIPELINE_TASK=hard_cascade_failure \\",
+                "ENV_URL=http://localhost:8000 \\",
+                "venv/bin/python inference.py",
+            ],
             "lines": [
                 "[START] task=easy_api_delay env=pipeline_debugger model=Qwen/Qwen2.5-72B-Instruct",
                 "[STEP] step=1 action=check_api reward=0.10 done=false error=null",

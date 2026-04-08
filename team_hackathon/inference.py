@@ -8,6 +8,7 @@ structured stdout format.
 import asyncio
 import os
 import textwrap
+from pathlib import Path
 from typing import List, Optional
 
 IMPORT_ERROR: Optional[Exception] = None
@@ -27,9 +28,7 @@ except Exception as exc:
     IMPORT_ERROR = IMPORT_ERROR or exc
 
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
-API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
 TASK_NAME = os.getenv("PIPELINE_TASK")
 BENCHMARK = os.getenv("PIPELINE_BENCHMARK", "pipeline_debugger")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:8000")
@@ -65,6 +64,39 @@ SYSTEM_PROMPT = textwrap.dedent(
     fix_sync
     """
 ).strip()
+
+
+def load_dotenv_file() -> None:
+    env_path = Path(__file__).with_name(".env")
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+
+        if not key:
+            continue
+
+        if "#" in value and not value.startswith(("'", '"')):
+            value = value.split("#", 1)[0].strip()
+
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+
+        os.environ.setdefault(key, value)
+
+
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
 
 
 def log_start(task: str, env: str, model: str) -> None:
@@ -222,12 +254,14 @@ async def run_task(client: OpenAI, env: TeamHackathonEnv, task_name: str) -> Non
 
 
 async def main() -> None:
+    load_dotenv_file()
+
     if IMPORT_ERROR is not None:
         raise RuntimeError(str(IMPORT_ERROR))
 
     env: Optional[TeamHackathonEnv] = None
-    api_base_url = os.getenv("API_BASE_URL", API_BASE_URL)
-    api_key = os.getenv("API_KEY") or API_KEY
+    api_base_url = require_env("API_BASE_URL")
+    api_key = require_env("API_KEY")
     client = OpenAI(base_url=api_base_url, api_key=api_key)
 
     try:
@@ -255,5 +289,6 @@ async def main() -> None:
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except Exception:
+    except Exception as exc:
+        print(f"[ERROR] {exc}", flush=True)
         log_end(success=False, steps=0, score=0.0, rewards=[])
