@@ -69,7 +69,7 @@ class PipelineMetricsCalculator:
     # Scoring weights
     BASE_SCORE_WEIGHT = 0.7
     EFFICIENCY_WEIGHT = 0.3
-    SCORE_EPSILON = 1e-6
+    SCORE_EPSILON = 1e-3
     
     def __init__(self):
         """Initialize the metrics calculator."""
