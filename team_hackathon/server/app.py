@@ -42,7 +42,7 @@ except ModuleNotFoundError:
     from models import TeamHackathonAction, TeamHackathonObservation
     from server.team_hackathon_environment import TeamHackathonEnvironment
 
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 
 # Create the app with web interface and README integration
@@ -107,6 +107,7 @@ async def home() -> str:
             gap: 12px;
             flex-wrap: wrap;
             margin-top: 20px;
+            margin-bottom: 24px;
           }
           a {
             text-decoration: none;
@@ -132,6 +133,26 @@ async def home() -> str:
             padding: 2px 6px;
             border-radius: 6px;
           }
+          pre {
+            background: #0f1b2a;
+            color: #e8f0f8;
+            padding: 18px;
+            border-radius: 14px;
+            overflow-x: auto;
+            font-size: 0.92rem;
+            line-height: 1.55;
+          }
+          .section-title {
+            margin-top: 28px;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
+            font-weight: 700;
+          }
+          ul {
+            color: var(--muted);
+            line-height: 1.6;
+            padding-left: 20px;
+          }
         </style>
       </head>
       <body>
@@ -154,12 +175,43 @@ async def home() -> str:
               <a href="/docs">Open API Docs</a>
               <a href="/health">Health Check</a>
               <a href="/openapi.json">OpenAPI JSON</a>
+              <a href="/example-output">Example Output</a>
             </div>
+            <div class="section-title">What Visitors Will See</div>
+            <ul>
+              <li><code>/health</code> returns a small readiness JSON response.</li>
+              <li><code>/docs</code> shows the interactive API documentation.</li>
+              <li><code>/example-output</code> shows a sample inference transcript in the required hackathon format.</li>
+            </ul>
+            <div class="section-title">Sample Inference Output</div>
+            <pre>[START] task=easy_api_delay env=pipeline_debugger model=Qwen/Qwen2.5-72B-Instruct
+[STEP] step=1 action=check_api reward=0.10 done=false error=null
+[STEP] step=2 action=check_metrics reward=0.08 done=false error=null
+[STEP] step=3 action=retry_pipeline reward=0.87 done=true error=null
+[END] success=true steps=3 score=0.872 rewards=0.10,0.08,0.87</pre>
           </div>
         </div>
       </body>
     </html>
     """
+
+
+@app.get("/example-output", response_class=JSONResponse, include_in_schema=False)
+async def example_output() -> JSONResponse:
+    """Read-only example of the inference log format used in evaluation."""
+    return JSONResponse(
+        {
+            "description": "Sample structured stdout from inference.py",
+            "lines": [
+                "[START] task=easy_api_delay env=pipeline_debugger model=Qwen/Qwen2.5-72B-Instruct",
+                "[STEP] step=1 action=check_api reward=0.10 done=false error=null",
+                "[STEP] step=2 action=check_metrics reward=0.08 done=false error=null",
+                "[STEP] step=3 action=retry_pipeline reward=0.87 done=true error=null",
+                "[END] success=true steps=3 score=0.872 rewards=0.10,0.08,0.87",
+            ],
+            "note": "This endpoint is illustrative only. Real evaluation output is produced when inference.py is executed by the validator.",
+        }
+    )
 
 
 def main(host: str = "0.0.0.0", port: int = 8000):
