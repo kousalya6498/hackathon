@@ -69,10 +69,15 @@ class PipelineMetricsCalculator:
     # Scoring weights
     BASE_SCORE_WEIGHT = 0.7
     EFFICIENCY_WEIGHT = 0.3
+    SCORE_EPSILON = 1e-6
     
     def __init__(self):
         """Initialize the metrics calculator."""
         pass
+
+    def _clamp_open_unit_interval(self, value: float) -> float:
+        """Clamp scores into the open interval (0, 1) for validator compatibility."""
+        return max(self.SCORE_EPSILON, min(1.0 - self.SCORE_EPSILON, value))
     
     def calculate_action_reward(
         self,
@@ -143,11 +148,11 @@ class PipelineMetricsCalculator:
         )
         
         if max_possible_score <= 0:
-            return 0.0
+            return self.SCORE_EPSILON
         
         # Normalize to 0-1 range, ensuring non-negative
         base_score = max(0, raw_score) / max_possible_score
-        return min(1.0, base_score)
+        return self._clamp_open_unit_interval(base_score)
     
     def calculate_efficiency_score(
         self,
@@ -172,10 +177,10 @@ class PipelineMetricsCalculator:
         optimal_steps = len(correct_diagnostics) + len(correct_fixes)
         
         if steps_taken <= 0:
-            return 0.0
-        
+            return self.SCORE_EPSILON
+
         efficiency = optimal_steps / steps_taken
-        return min(1.0, efficiency)
+        return self._clamp_open_unit_interval(efficiency)
     
     def calculate_final_score(
         self,
@@ -219,7 +224,7 @@ class PipelineMetricsCalculator:
         )
         
         # Ensure in valid range
-        final_score = max(0.0, min(1.0, final_score))
+        final_score = self._clamp_open_unit_interval(final_score)
         
         return base_score, efficiency_score, final_score
     
