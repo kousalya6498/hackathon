@@ -171,7 +171,7 @@ async def home() -> str:
               The benchmark includes three escalating scenarios: a recoverable API slowdown,
               a warehouse sync mismatch, and a cascading multi-signal failure that requires
               coordinated diagnosis. Rewards reflect partial progress, redundant actions are
-              penalized, and final scores are normalized to <code>[0, 1]</code>.
+              penalized, and final scores are normalized to <code>(0, 1)</code>.
             </p>
             <div class="links">
               <a href="/docs">API Docs</a>
