@@ -10,298 +10,203 @@ pinned: false
 
 # Pipeline Debugging Environment
 
-An OpenEnv environment for training agents to diagnose and fix supply chain pipeline failures through systematic investigation using multi-signal operational evidence.
+An OpenEnv environment for evaluating agents on supply-chain incident response. Each episode asks the agent to investigate operational evidence, diagnose the failure mode, and choose the right remediation action.
 
-## 🎯 Overview
+## What is in this repo
 
-This environment simulates real-world supply chain debugging scenarios where agents must:
-1. **Investigate** failure indicators across multiple systems (inventory, API, metrics)
-2. **Diagnose** the root cause through systematic analysis
-3. **Apply** appropriate fixes efficiently
+- 3 deterministic tasks with increasing difficulty
+- A FastAPI/OpenEnv server
+- A packaged Python client for reset/step interaction
+- A rule-based baseline agent
+- An LLM-driven `inference.py` script that emits validator-friendly logs
+- Transparent scoring logic in `metrics.py`
 
-Each task now ships with a larger incident corpus containing business impact summaries, inventory-side evidence, API-side traces, and metrics timelines rather than a single toy record.
+## Tasks
 
-### Real-World Application
+| Task | Difficulty | Description | Max steps |
+| --- | --- | --- | --- |
+| `easy_api_delay` | easy | Elevated API latency with a recoverable pipeline delay | 8 |
+| `medium_sync_failure` | medium | Warehouse and central inventory drift out of sync | 10 |
+| `hard_cascade_failure` | hard | Multi-signal cascading failure across logs, API, and metrics | 12 |
 
-Models production incident response in:
-- E-commerce inventory systems
-- Warehouse management platforms
-- Supply chain orchestration systems
-- Distributed pipeline monitoring
+## Action space
 
-## 📊 Tasks
+Diagnostic actions:
 
-The environment includes 3 tasks with progressive difficulty:
+- `check_logs`
+- `check_api`
+- `check_metrics`
 
-### 1. Easy: Simple API Delay
-- **Description**: API response time is elevated
-- **Max Steps**: 8
-- **Challenge**: Identify API delay and apply retry fix
-- **Indicators**: High API response time, elevated latency
+Fix actions:
 
-### 2. Medium: Warehouse Sync Failure
-- **Description**: Stock mismatch between warehouse and central system
-- **Max Steps**: 10
-- **Challenge**: Diagnose sync issues across inventory and API systems
-- **Indicators**: Inventory lag, API errors, sync delays
+- `retry_pipeline`
+- `apply_batching`
+- `fix_sync`
 
-### 3. Hard: Cascading Timeout Failure
-- **Description**: Multiple systems experiencing cascading failures
-- **Max Steps**: 12
-- **Challenge**: Comprehensive diagnosis and coordinated fixes
-- **Indicators**: High latency, network congestion, API timeouts, inventory errors
+## Observation highlights
 
-## 🎮 Action Space
+Each observation includes:
 
-Agents can take 6 types of actions:
+- Task metadata: `task_id`, `task_difficulty`, `issue_description`
+- Operational indicators: inventory lag, API error rate, latency, congestion
+- Evidence strings: inventory log excerpt, API log excerpt, metrics summary, business impact summary
+- Episode progress: `step_count`, `max_steps`, `actions_taken`
+- Outcome state: `diagnosis_complete`, `fix_applied`, `done`
+- Current normalized score: strictly inside `(0, 1)`
 
-### Diagnostic Actions
-- `check_logs` - Inspect inventory logs for errors and mismatches
-- `check_api` - Inspect API sync logs for failures and delays
-- `check_metrics` - Inspect latency and performance metrics
+## Scoring
 
-### Fix Actions
-- `retry_pipeline` - Retry failed pipeline operations
-- `apply_batching` - Apply batching to reduce load
-- `fix_sync` - Apply synchronization correction
+Scoring combines:
 
-## 📈 Observation Space
+- Correctness: 70%
+- Efficiency: 30%
 
-Rich observations include:
-- **Task Info**: task_id, difficulty level
-- **Pipeline State**: pipeline name, issue description
-- **Failure Indicators** (normalized 0-1):
-  - inventory_lag_score
-  - inventory_error_count
-  - api_response_time
-  - api_error_rate
-  - latency_score
-  - network_congestion
-- **Action Feedback**: last action, result, actions taken
-- **Progress**: step count, diagnosis/fix status
-- **Score**: current episode score (0.0-1.0)
-- **Hints**: Contextual guidance
-- **Operational Evidence**:
-  - inventory_log_excerpt
-  - api_log_excerpt
-  - metrics_summary
-  - business_impact_summary
+The implementation lives in `metrics.py`, and `openenv.yaml` declares the normalized scoring range as `(0,1)`.
 
-## 🏆 Scoring
+## Project structure
 
-Agents are scored 0.0-1.0 based on:
+```text
+team_hackathon/
+├── __init__.py
+├── baseline.py
+├── client.py
+├── data/
+│   └── sample_logs.json
+├── debug_step.py
+├── inference.py
+├── metrics.py
+├── models.py
+├── openenv.yaml
+├── pyproject.toml
+├── results.json
+├── server/
+│   ├── __init__.py
+│   ├── app.py
+│   └── team_hackathon_environment.py
+├── test_connection.py
+├── TESTING_GUIDE.md
+└── README.md
+```
 
-- **Correctness (70%)**: Taking the right diagnostic and fix actions
-  - +10 points per correct diagnostic action
-  - +20 points per correct fix action
-  - -5 points for wrong actions
-  - -2 points for redundant actions
-
-- **Efficiency (30%)**: Completing the task in fewer steps
-  - Bonus for optimal step count
-  - Penalty for unnecessary actions
-
-### Grading Properties
-- ✅ Deterministic and reproducible
-- ✅ Normalized to [0.0, 1.0] range
-- ✅ Balances correctness and efficiency
-- ✅ Provides meaningful difficulty progression
-
-## 🚀 Quick Start
-
-### Installation
+## Install
 
 ```bash
-# Install OpenEnv
-pip install openenv-core[core]
-
-# Or use uv
 uv sync
 ```
 
-### Running the Server
+If you prefer `pip`, the main runtime dependencies are listed in `requirements.txt`.
+
+## Run the server
+
+Recommended:
 
 ```bash
-# Development mode
-uvicorn server.app:app --reload --host 0.0.0.0 --port 8000
-
-# Production mode
-uvicorn server.app:app --host 0.0.0.0 --port 8000 --workers 4
-
-# Or use the entry point
 uv run server
 ```
 
-### Using the Environment
+Equivalent options:
+
+```bash
+uvicorn server.app:app --host 0.0.0.0 --port 8000 --reload
+python -m server.app
+```
+
+## Smoke test the server
+
+HTTP sanity checks:
+
+```bash
+python3 test_connection.py
+```
+
+Single reset + step debug run:
+
+```bash
+python3 debug_step.py
+```
+
+## Use the Python client
 
 ```python
 from team_hackathon import TeamHackathonEnv, TeamHackathonAction
 
-# Connect to server
 async with TeamHackathonEnv(base_url="http://localhost:8000") as env:
-    # Reset environment
-    result = await env.reset()
+    result = await env.reset(task_id="easy_api_delay")
     obs = result.observation
-    
-    print(f"Task: {obs.task_id} ({obs.task_difficulty})")
-    print(f"Issue: {obs.issue_description}")
-    
-    # Take actions
-    while not obs.done:
-        # Your agent logic here
-        action = TeamHackathonAction(action_type="check_logs")
+
+    while not result.done:
+        action = TeamHackathonAction(action_type="check_api")
         result = await env.step(action)
         obs = result.observation
-        
-        print(f"Action: {obs.last_action}")
-        print(f"Result: {obs.action_result}")
-        print(f"Score: {obs.current_score:.3f}")
+        print(obs.action_result, obs.current_score)
 ```
 
-### Running the Baseline
+## Run the baseline
 
 ```bash
-# Run baseline agent across the task set
 python3 baseline.py --episodes 3 --url http://localhost:8000
-
-# Save results
-python3 baseline.py --episodes 6 --url http://localhost:8000 --output results.json
+python3 baseline.py --episodes 3 --url http://localhost:8000 --output results.json
 ```
 
-### Running the LLM Inference Script
+The checked-in `results.json` records one deterministic pass over all three tasks:
+
+| Difficulty | Mean score |
+| --- | --- |
+| easy | 0.8725 |
+| medium | 0.7317 |
+| hard | 0.6889 |
+| overall | 0.7644 |
+
+Success rate in that run: 100%.
+
+## Run LLM inference
+
+`inference.py` requires `API_BASE_URL` and `API_KEY`.
+
+Example:
 
 ```bash
-export OPENAI_API_KEY="your_key_here"
-export API_BASE_URL="https://api.openai.com/v1"
-export MODEL_NAME="gpt-4.1-mini"
+export API_BASE_URL="https://router.huggingface.co/v1"
+export API_KEY="your_key_here"
+export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
 export ENV_URL="http://localhost:8000"
 
-# Runs easy, medium, and hard tasks in order by default
 python3 inference.py
 ```
 
-## 📦 Project Structure
-
-```
-team_hackathon/
-├── models.py                    # Action/Observation types
-├── client.py                    # Environment client
-├── baseline.py                  # Baseline agent script
-├── server/
-│   ├── app.py                   # FastAPI server
-│   └── team_hackathon_environment.py  # Environment implementation
-├── data/
-│   └── sample_logs.json         # Example failure logs
-├── openenv.yaml                 # Environment specification
-├── Dockerfile                   # Docker deployment
-├── pyproject.toml               # Project configuration
-└── README.md                    # This file
-```
-
-## 🐳 Docker Deployment
-
-### Build
+To run a single task:
 
 ```bash
-docker build -t pipeline-debugger:latest .
+export PIPELINE_TASK="hard_cascade_failure"
+python3 inference.py
 ```
 
-### Run
+The script emits structured lines like:
+
+```text
+[START] task=easy_api_delay env=pipeline_debugger model=Qwen/Qwen2.5-72B-Instruct
+[STEP] step=1 action=check_api reward=0.10 done=false error=null
+[STEP] step=2 action=check_metrics reward=0.08 done=false error=null
+[STEP] step=3 action=retry_pipeline reward=0.87 done=true error=null
+[END] success=true steps=3 score=0.872 rewards=0.10,0.08,0.87
+```
+
+## Deployment
+
+For OpenEnv deployment metadata, see `openenv.yaml`.
+
+To push to Hugging Face Spaces:
 
 ```bash
-docker run -p 8000:8000 pipeline-debugger:latest
+openenv push --repo-id your-username/pipeline-debugger
 ```
 
-### Deploy to Hugging Face Spaces
+## Current note on local setup
+
+During a fresh verification pass in this workspace on April 10, 2026, `uv run server` failed because the local virtual environment was missing `pydantic_core`. If you hit a similar error, rebuild or resync the environment first:
 
 ```bash
-openenv push
+uv sync
 ```
 
-## 📊 Baseline Performance
-
-The included rule-based baseline agent currently achieves:
-
-| Difficulty | Mean Score | Success Rate |
-|------------|------------|--------------|
-| Easy       | 0.872      | 100%         |
-| Medium     | 0.732      | 100%         |
-| Hard       | 0.689      | 100%         |
-
-**Overall**: 0.764 mean score, 100% success rate over one deterministic pass of all three tasks.
-
-This provides a solid baseline for comparison. Well-trained RL agents should significantly exceed these scores.
-
-## 🎓 Environment Design Highlights
-
-### Real-World Utility
-- Models genuine production debugging workflows
-- Addresses actual operational challenges
-- Applicable to multiple industries
-- Fills gap in RL environments for operational tasks
-
-### Task Quality
-- Clear difficulty progression
-- Well-defined objectives
-- Deterministic grading
-- Meaningful challenge at all levels
-
-### Environment Design
-- Clean state management
-- Sensible action/observation spaces
-- Good reward shaping (not sparse)
-- Proper episode boundaries
-
-### Code Quality
-- OpenEnv spec compliant
-- Clean project structure
-- Typed models with Pydantic
-- Comprehensive documentation
-- Docker support
-
-## 🔧 Development
-
-### Testing the Environment
-
-```python
-from server.team_hackathon_environment import TeamHackathonEnvironment
-from models import TeamHackathonAction
-
-# Create environment
-env = TeamHackathonEnvironment()
-
-# Reset
-obs = env.reset()
-print(f"Task: {obs.task_id}")
-
-# Take actions
-action = TeamHackathonAction(action_type="check_logs")
-obs = env.step(action)
-print(f"Result: {obs.action_result}")
-print(f"Score: {obs.current_score}")
-```
-
-### Validation
-
-```bash
-# Validate OpenEnv compliance
-openenv validate
-
-# Test Docker build
-docker build -t test .
-docker run -p 8000:8000 test
-```
-
-## 📝 License
-
-This project is part of an OpenEnv hackathon submission.
-
-## 🤝 Contributing
-
-This environment demonstrates:
-- Novel problem domain (supply chain debugging)
-- Interesting two-phase mechanics (diagnosis → fix)
-- Clever reward design balancing correctness and efficiency
-- Real-world applicability
-
-Perfect for training agents to handle production incidents efficiently!
+For a more detailed verification workflow and troubleshooting notes, see `TESTING_GUIDE.md`.
